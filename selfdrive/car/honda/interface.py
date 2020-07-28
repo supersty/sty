@@ -423,15 +423,15 @@ class CarInterface(CarInterfaceBase):
     return ret
 
   # returns a car.CarState
-  def update(self, c, can_strings, dragonconf):
+  def update(self, c, can_strings):
     # ******************* do can recv *******************
     self.cp.update_strings(can_strings)
     self.cp_cam.update_strings(can_strings)
 
     ret = self.CS.update(self.cp, self.cp_cam)
     # dp
-    self.dragonconf = dragonconf
-    ret.cruiseState.enabled = common_interface_atl(ret, dragonconf.dpAtl)
+    self.sm.update(0)
+    ret.cruiseState.enabled = common_interface_atl(ret, self.sm['dragonConf'].dpAtl)
     ret.canValid = self.cp.can_valid and self.cp_cam.can_valid
     ret.yawRate = self.VM.yaw_rate(ret.steeringAngle * CV.DEG_TO_RAD, ret.vEgo)
     # FIXME: read sendcan for brakelights
@@ -555,7 +555,7 @@ class CarInterface(CarInterfaceBase):
                                pcm_accel,
                                hud_v_cruise,
                                c.hudControl.lanesVisible,
-                               self.dragonconf,
+                               self.sm['dragonConf'],
                                hud_show_car=c.hudControl.leadVisible,
                                hud_alert=c.hudControl.visualAlert)
 

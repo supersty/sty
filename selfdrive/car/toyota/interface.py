@@ -339,17 +339,17 @@ class CarInterface(CarInterfaceBase):
     return ret
 
   # returns a car.CarState
-  def update(self, c, can_strings, dragonconf):
+  def update(self, c, can_strings):
     # ******************* do can recv *******************
     self.cp.update_strings(can_strings)
     self.cp_cam.update_strings(can_strings)
 
     ret = self.CS.update(self.cp, self.cp_cam)
     # dp
-    self.dragonconf = dragonconf
-    ret.cruiseState.enabled = common_interface_atl(ret, dragonconf.dpAtl)
-    if dragonconf.dpToyotaLowestCruiseOverride and ret.cruiseState.speed < dragonconf.dpToyotaLowestCruiseOverrideAt * CV.KPH_TO_MS:
-      ret.cruiseState.speed = dragonconf.dpToyotaLowestCruiseOverrideSpeed * CV.KPH_TO_MS
+    self.sm.update(0)
+    ret.cruiseState.enabled = common_interface_atl(ret, self.sm['dragonConf'].dpAtl)
+    if self.sm['dragonConf'].dpToyotaLowestCruiseOverride and ret.cruiseState.speed < self.sm['dragonConf'].dpToyotaLowestCruiseOverrideAt * CV.KPH_TO_MS:
+      ret.cruiseState.speed = self.sm['dragonConf'].dpToyotaLowestCruiseOverrideSpeed * CV.KPH_TO_MS
 
     ret.canValid = self.cp.can_valid and self.cp_cam.can_valid
     ret.steeringRateLimited = self.CC.steer_rate_limited if self.CC is not None else False
@@ -384,7 +384,7 @@ class CarInterface(CarInterfaceBase):
                                c.actuators, c.cruiseControl.cancel,
                                c.hudControl.visualAlert, c.hudControl.leftLaneVisible,
                                c.hudControl.rightLaneVisible, c.hudControl.leadVisible,
-                               c.hudControl.leftLaneDepart, c.hudControl.rightLaneDepart, self.dragonconf)
+                               c.hudControl.leftLaneDepart, c.hudControl.rightLaneDepart, self.sm['dragonConf'])
 
     self.frame += 1
     return can_sends

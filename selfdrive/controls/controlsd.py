@@ -214,7 +214,10 @@ class Controls:
       else:
         self.events.add(EventName.canError)
     if self.mismatch_counter >= 200:
-      self.events.add(EventName.controlsMismatch)
+      if self.sm['dragonConf'].dpAtl:
+        self.events.add(EventName.pandaUpdateRequired)
+      else:
+        self.events.add(EventName.controlsMismatch)
     if not self.sm.alive['plan'] and self.sm.alive['pathPlan']:
       # only plan not being received: radar not communicating
       self.events.add(EventName.radarCommIssue)
@@ -222,7 +225,7 @@ class Controls:
       self.events.add(EventName.commIssue)
     if not self.sm['pathPlan'].mpcSolutionValid:
       if self.sm['dragonConf'].dpAtl:
-        self.events.add(EventName.steerTempUnavailable)
+        self.events.add(EventName.steerTempUnavailableAtl)
       else:
         self.events.add(EventName.plannerError)
     if not self.sm['liveLocationKalman'].inputsOK and os.getenv("NOSENSOR") is None:
@@ -272,7 +275,7 @@ class Controls:
 
     # Update carState from CAN
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
-    CS = self.CI.update(self.CC, can_strs, self.sm['dragonConf'])
+    CS = self.CI.update(self.CC, can_strs)
 
     self.sm.update(0)
 
@@ -290,7 +293,7 @@ class Controls:
     if not self.enabled:
       self.mismatch_counter = 0
 
-    if not self.sm['dragonConf'].dpAtl and not self.sm['health'].controlsAllowed and self.enabled:
+    if not self.sm['health'].controlsAllowed and self.enabled:
       self.mismatch_counter += 1
 
     self.distance_traveled += CS.vEgo * DT_CTRL

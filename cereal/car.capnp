@@ -120,6 +120,8 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     manualSteeringRequired @93;
     manualSteeringRequiredBlinkersOn @94;
     leadCarMoving @95;
+    pandaUpdateRequired @96;
+    steerTempUnavailableAtl @97;
   }
 }
 

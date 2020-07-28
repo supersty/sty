@@ -844,4 +844,18 @@ EVENTS = {
      AlertStatus.userPrompt, AlertSize.small,
      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.chimePrompt, .1, .1, .1),
   },
+
+  EventName.pandaUpdateRequired: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert(_("Panda update required")),
+  },
+
+  EventName.steerTempUnavailableAtl: {
+    ET.WARNING: Alert(
+      _("Planner Solution Error"),
+      _("Steering Temporarily Unavailable (ATL)"),
+      AlertStatus.userPrompt, AlertSize.mid,
+      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.chimeWarning1, .4, 2., 3.),
+    ET.NO_ENTRY: NoEntryAlert(_("Steering Temporarily Unavailable"),
+                              duration_hud_alert=0.),
+  },
 }

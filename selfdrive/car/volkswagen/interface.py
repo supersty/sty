@@ -100,7 +100,7 @@ class CarInterface(CarInterfaceBase):
     return ret
 
   # returns a car.CarState
-  def update(self, c, can_strings, dragonconf):
+  def update(self, c, can_strings):
     canMonoTimes = []
     buttonEvents = []
 
@@ -115,9 +115,8 @@ class CarInterface(CarInterfaceBase):
     ret.steeringRateLimited = self.CC.steer_rate_limited if self.CC is not None else False
 
     # dp
-    self.dragonconf = dragonconf
-    ret.cruiseState.enabled = common_interface_atl(ret, dragonconf.dpAtl)
-
+    self.sm.update(0)
+    ret.cruiseState.enabled = common_interface_atl(ret, self.sm['dragonConf'].dpAtl)
     ret.canValid = self.cp.can_valid and self.cp_cam.can_valid
     ret.steeringRateLimited = self.CC.steer_rate_limited if self.CC is not None else False
 
@@ -170,6 +169,6 @@ class CarInterface(CarInterfaceBase):
                    c.hudControl.visualAlert,
                    c.hudControl.audibleAlert,
                    c.hudControl.leftLaneVisible,
-                   c.hudControl.rightLaneVisible, self.dragonconf)
+                   c.hudControl.rightLaneVisible, self.sm['dragonConf'])
     self.frame += 1
     return can_sends
