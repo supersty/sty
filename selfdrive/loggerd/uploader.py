@@ -247,8 +247,7 @@ def uploader_fn(exit_event, sm=None):
   uploader = Uploader(dongle_id, ROOT)
 
   # dp
-  if sm is None:
-    sm = messaging.SubMaster(['dragonConf'])
+  sm = messaging.SubMaster(['dragonConf'])
 
   backoff = 0.1
   while True:
