@@ -208,6 +208,7 @@ typedef struct UIState {
   NVGcontext *vg;
 
   // fonts and images
+  int font_courbd;
   int font_sans_regular;
   int font_sans_semibold;
   int font_sans_bold;
