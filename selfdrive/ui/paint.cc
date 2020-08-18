@@ -380,7 +380,6 @@ static void ui_draw_world(UIState *s) {
       draw_lead(s, scene->lead_data[1]);
     }
   }
-  }
   nvgRestore(s->vg);
 }
 
