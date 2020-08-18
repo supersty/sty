@@ -67,6 +67,7 @@ bool time_valid(struct tm sys_time){
 }
 
 void safety_setter_thread() {
+  #ifndef DisableRelay
   LOGD("Starting safety setter thread");
   // diagnostic only is the default, needed for VIN query
   panda->set_safety_model(cereal::CarParams::SafetyModel::ELM327);
@@ -91,7 +92,7 @@ void safety_setter_thread() {
 
   // VIN query done, stop listening to OBDII
   panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
-
+  #endif
   std::vector<char> params;
   LOGW("waiting for params to set safety model");
   while (1) {
@@ -113,6 +114,9 @@ void safety_setter_thread() {
   capnp::FlatArrayMessageReader cmsg(amsg);
   cereal::CarParams::Reader car_params = cmsg.getRoot<cereal::CarParams>();
   cereal::CarParams::SafetyModel safety_model = car_params.getSafetyModel();
+
+  LOGW("setting unsafe mode");
+  panda->set_unsafe_mode();
 
   auto safety_param = car_params.getSafetyParam();
   LOGW("setting safety model: %d with param %d", (int)safety_model, safety_param);
@@ -278,6 +282,11 @@ void can_health_thread() {
   LOGD("start health thread");
   PubMaster pm({"health"});
 
+  // dp
+  SubMaster sm({"dragonConf"});
+  int no_ign_cnt_max = NO_IGNITION_CNT_MAX;
+  int check_cnt = 0;
+
   uint32_t no_ignition_cnt = 0;
   bool ignition_last = false;
   float voltage_f = 12.5;  // filtered voltage
@@ -296,6 +305,17 @@ void can_health_thread() {
 
   // run at 2hz
   while (!do_exit && panda->connected) {
+    if (check_cnt % 60 == 0) {
+      sm.update();
+      if (sm.updated("dragonConf") && sm["dragonConf"].getDragonConf().getDpAutoShutdown()) {
+        no_ign_cnt_max = sm["dragonConf"].getDragonConf().getDpAutoShutdownIn() * 60 * 2 - 10;  // -5 seconds, turn off earlier than EON
+      } else {
+        no_ign_cnt_max = NO_IGNITION_CNT_MAX; // use stock value
+      }
+      check_cnt = 0;
+    }
+    check_cnt++;
+
     capnp::MallocMessageBuilder msg;
     cereal::Event::Builder event = msg.initRoot<cereal::Event>();
     event.setLogMonoTime(nanos_since_boot());
@@ -308,12 +328,12 @@ void can_health_thread() {
     }
 
     voltage_f = VOLTAGE_K * (health.voltage / 1000.0) + (1.0 - VOLTAGE_K) * voltage_f;  // LPF
-
+    #ifndef DisableRelay
     // Make sure CAN buses are live: safety_setter_thread does not work if Panda CAN are silent and there is only one other CAN node
     if (health.safety_model == (uint8_t)(cereal::CarParams::SafetyModel::SILENT)) {
       panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
     }
-
+    #endif
     bool ignition = ((health.ignition_line != 0) || (health.ignition_can != 0));
 
     if (ignition) {
@@ -324,7 +344,7 @@ void can_health_thread() {
 
 #ifdef QCOM
     bool cdp_mode = health.usb_power_mode == (uint8_t)(cereal::HealthData::UsbPowerMode::CDP);
-    bool no_ignition_exp = no_ignition_cnt > NO_IGNITION_CNT_MAX;
+    bool no_ignition_exp = no_ignition_cnt > no_ign_cnt_max;
     if ((no_ignition_exp || (voltage_f < VBATT_PAUSE_CHARGING)) && cdp_mode && !ignition) {
       std::vector<char> disable_power_down = read_db_bytes("DisablePowerDown");
       if (disable_power_down.size() != 1 || disable_power_down[0] != '1') {
@@ -345,11 +365,12 @@ void can_health_thread() {
     if (health.power_save_enabled != power_save_desired){
       panda->set_power_saving(power_save_desired);
     }
-
+    #ifndef DisableRelay
     // set safety mode to NO_OUTPUT when car is off. ELM327 is an alternative if we want to leverage athenad/connect
     if (!ignition && (health.safety_model != (uint8_t)(cereal::CarParams::SafetyModel::NO_OUTPUT))) {
       panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
     }
+    #endif
 #endif
 
     // clear VIN, CarParams, and set new safety on car start
@@ -561,6 +582,11 @@ void pigeon_thread() {
 
   pigeon_init();
 
+  // dp
+  #ifdef DisableRelay
+  panda->set_safety_model(cereal::CarParams::SafetyModel::TOYOTA);
+  #endif
+
   while (!do_exit && panda->connected) {
     int alen = 0;
     while (alen < 0xfc0) {
@@ -590,6 +616,9 @@ void pigeon_thread() {
 int main() {
   int err;
   LOGW("starting boardd");
+  #ifdef DisableRelay
+  LOGW("boardd is running with relay disabled.");
+  #endif
 
   // set process priority and affinity
   err = set_realtime_priority(54);
