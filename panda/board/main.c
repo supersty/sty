@@ -148,7 +148,11 @@ void set_safety_mode(uint16_t mode, int16_t param) {
       set_intercept_relay(true);
       heartbeat_counter = 0U;
       if (board_has_obd()) {
-        current_board->set_can_mode(CAN_MODE_NORMAL);
+        if (mode_copy == SAFETY_HYUNDAI_LEGACY || mode_copy == SAFETY_HYUNDAI) {
+          current_board->set_can_mode(CAN_MODE_OBD_CAN2);
+        } else {
+          current_board->set_can_mode(CAN_MODE_NORMAL);
+        }
       }
       can_silent = ALL_CAN_LIVE;
       break;
@@ -817,7 +821,11 @@ int main(void) {
   // use TIM2->CNT to read
 
   // init to SILENT and can silent
+  #ifdef hkg
+  set_safety_mode(SAFETY_ALLOUTPUT, 0); // MDPS will hard if SAFETY_NOOUTPUT
+  #else
   set_safety_mode(SAFETY_SILENT, 0);
+  #endif
 
   // enable CAN TXs
   current_board->enable_can_transcievers(true);

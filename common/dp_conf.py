@@ -102,11 +102,12 @@ confs = [
   {'name': 'dp_charging_at', 'default': 60, 'type': 'UInt8', 'min': 0, 'max': 100, 'depends': [{'name': 'dp_charging_ctrl', 'vals': [True]}], 'conf_type': ['param', 'struct']},
   {'name': 'dp_discharging_at', 'default': 70, 'type': 'UInt8', 'min': 0, 'max': 100, 'depends': [{'name': 'dp_charging_ctrl', 'vals': [True]}], 'conf_type': ['param', 'struct']},
   {'name': 'dp_reg', 'default': True, 'type': 'Bool', 'conf_type': ['param']},
-  {'name': 'dp_is_updating', 'default': False, 'type': 'Bool', 'set_param_only': True, 'conf_type': ['param', 'struct']},
+  {'name': 'dp_is_updating', 'default': False, 'type': 'Bool', 'conf_type': ['param', 'struct']},
 
   {'name': 'dp_sr_learner', 'default': True, 'type': 'Bool', 'conf_type': ['param']},
   {'name': 'dp_lqr', 'default': False, 'type': 'Bool', 'conf_type': ['param']},
   {'name': 'dp_reset_live_param_on_start', 'default': False, 'type': 'Bool', 'conf_type': ['param']},
+  {'name': 'dp_hkg', 'default': False, 'type': 'Bool', 'conf_type': ['param', 'struct'], 'update_once': True},
 
   # including thermal data
   {'name': 'dp_thermal_started', 'default': False, 'type': 'Bool', 'conf_type': ['struct']},

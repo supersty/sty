@@ -100,6 +100,10 @@ void black_set_esp_gps_mode(uint8_t mode) {
 }
 
 void black_set_can_mode(uint8_t mode){
+  #ifdef hkg
+  mode = CAN_MODE_OBD_CAN2;
+  #pragma message("foo4")
+  #endif
   switch (mode) {
     case CAN_MODE_NORMAL:
     case CAN_MODE_OBD_CAN2:
