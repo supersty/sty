@@ -86,8 +86,10 @@ def only_toyota_left(candidate_cars):
 
 # **** for use live only ****
 def fingerprint(logcan, sendcan, has_relay):
-  fixed_fingerprint = os.environ.get('FINGERPRINT', "") or Params().get('dp_car_selected', encoding='utf8')
+  params = Params()
+  fixed_fingerprint = os.environ.get('FINGERPRINT', "") or params.get('dp_car_selected', encoding='utf8')
   skip_fw_query = os.environ.get('SKIP_FW_QUERY', False)
+  dp_hkg = params.get('dp_hkg') == b'1'
 
   if has_relay and not fixed_fingerprint and not skip_fw_query:
     # Vin query only reliably works thorugh OBDII
@@ -117,7 +119,7 @@ def fingerprint(logcan, sendcan, has_relay):
   Params().put("CarVin", vin)
 
   finger = gen_empty_fingerprint()
-  buses = [0] if Params().get('dp_hkg') == b'1' else [0, 1]
+  buses = [0] if dp_hkg else [0, 1]
   candidate_cars = {i: all_known_cars() for i in buses} # attempt fingerprint on both bus 0 and 1
   frame = 0
   frame_fingerprint = 10  # 0.1s
@@ -171,6 +173,14 @@ def fingerprint(logcan, sendcan, has_relay):
 
   cloudlog.warning("fingerprinted %s", car_fingerprint)
   put_nonblocking('dp_car_detected', car_fingerprint)
+
+  try:
+    if not dp_hkg and ('KIA' in car_fingerprint or 'HYUNDAI' in car_fingerprint or 'GENESIS' in car_fingerprint):
+      params.put('dp_hkg', '1')
+      os.system("reboot")
+  except:
+    pass
+
   return car_fingerprint, finger, vin, car_fw, source
 
 

@@ -69,9 +69,8 @@ class CarState(CarStateBase):
     ret.cruiseState.available = (cp_scc.vl["SCC11"]["MainMode_ACC"] != 0) if not self.no_radar else \
       cp.vl['EMS16']['CRUISE_LAMP_M'] != 0
     ret.cruiseState.standstill = cp_scc.vl["SCC11"]['SCCInfoDisplay'] == 4. if not self.no_radar else False
-    self.is_set_speed_in_mph = int(cp.vl["CLU11"]["CF_Clu_SPEED_UNIT"])
     if ret.cruiseState.enabled:
-      speed_conv = CV.MPH_TO_MS if self.is_set_speed_in_mph else CV.KPH_TO_MS
+      speed_conv = CV.MPH_TO_MS if int(cp.vl["CLU11"]["CF_Clu_SPEED_UNIT"]) else CV.KPH_TO_MS
       ret.cruiseState.speed = cp_scc.vl["SCC11"]['VSetDis'] * speed_conv if not self.no_radar else \
         cp.vl["LVR12"]["CF_Lvr_CruiseSet"] * speed_conv
     else:
@@ -120,40 +119,16 @@ class CarState(CarStateBase):
         ret.gearShifter = GearShifter.unknown
     # Gear Selecton - This is only compatible with optima hybrid 2017
     elif self.CP.carFingerprint in FEATURES["use_elect_gears"]:
-      gear = cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"]
-      if gear in (5, 8):  # 5: D, 8: sport mode
-        ret.gearShifter = GearShifter.drive
-      elif gear == 6:
-        ret.gearShifter = GearShifter.neutral
-      elif gear == 0:
-        ret.gearShifter = GearShifter.park
-      elif gear == 7:
-        ret.gearShifter = GearShifter.reverse
-      else:
-        ret.gearShifter = GearShifter.unknown
+      ret = self.set_common_gear(ret, cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"])
     # Gear Selecton - This is not compatible with all Kia/Hyundai's, But is the best way for those it is compatible with
     else:
-      gear = cp.vl["LVR12"]["CF_Lvr_Gear"]
-      if gear in (5, 8):  # 5: D, 8: sport mode
-        ret.gearShifter = GearShifter.drive
-      elif gear == 6:
-        ret.gearShifter = GearShifter.neutral
-      elif gear == 0:
-        ret.gearShifter = GearShifter.park
-      elif gear == 7:
-        ret.gearShifter = GearShifter.reverse
-      else:
-        ret.gearShifter = GearShifter.unknown
+      ret = self.set_common_gear(ret, cp.vl["LVR12"]["CF_Lvr_Gear"])
 
-    if self.CP.carFingerprint in FEATURES["use_fca"]:
-      ret.stockAeb = cp.vl["FCA11"]['FCA_CmdAct'] != 0
-      ret.stockFcw = cp.vl["FCA11"]['CF_VSM_Warn'] == 2
-    else:
-      ret.stockAeb = cp.vl["SCC12"]['AEB_CmdAct'] != 0
-      ret.stockFcw = cp.vl["SCC12"]['CF_VSM_Warn'] == 2
+    aeb_fcw_msg = "FCA11" if self.CP.carFingerprint in FEATURES["use_fca"] else "SCC12"
+    ret.stockAeb = cp.vl[aeb_fcw_msg]['FCA_CmdAct'] != 0
+    ret.stockFcw = cp.vl[aeb_fcw_msg]['CF_VSM_Warn'] == 2
 
-    # Blind Spot Detection and Lane Change Assist signals
-    self.lca_state = cp.vl["LCA11"]["CF_Lca_Stat"]
+    # Blind Spot Detection
     ret.leftBlindspot = cp.vl["LCA11"]["CF_Lca_IndLeft"] != 0
     ret.rightBlindspot = cp.vl["LCA11"]["CF_Lca_IndRight"] != 0
 
@@ -181,6 +156,19 @@ class CarState(CarStateBase):
       self.mdps11_strang = cp_mdps.vl["MDPS11"]["CR_Mdps_StrAng"]
       self.mdps11_stat = cp_mdps.vl["MDPS11"]["CF_Mdps_Stat"]
 
+    return ret
+
+  def set_common_gear(self, ret, gear):
+    if gear in (5, 8):  # 5: D, 8: sport mode
+      ret.gearShifter = GearShifter.drive
+    elif gear == 6:
+      ret.gearShifter = GearShifter.neutral
+    elif gear == 0:
+      ret.gearShifter = GearShifter.park
+    elif gear == 7:
+      ret.gearShifter = GearShifter.reverse
+    else:
+      ret.gearShifter = GearShifter.unknown
     return ret
 
   @staticmethod
